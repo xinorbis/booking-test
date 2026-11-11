@@ -6,7 +6,6 @@ use App\Models\Booking;
 use App\Models\Room;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class BookingController extends Controller
@@ -20,16 +19,17 @@ class BookingController extends Controller
 
     public function store(Request $request)
     {
-        $conflict = DB::select("SELECT id FROM bookings
-            WHERE room_id = {$request->room_id}
-            AND starts_at <= '{$request->ends_at}'
-            AND ends_at >= '{$request->starts_at}'");
+        $start = Carbon::parse($request->starts_at);
+        $end = Carbon::parse($request->ends_at);
+
+        $conflict = Booking::query()
+            ->overlapping($request->integer('room_id'), $start, $end)
+            ->exists();
 
         if ($conflict) {
             return response()->json(['error' => 'Комната занята'], 409);
         }
 
-        $start = Carbon::parse($request->starts_at);
         if ($start->hour < 9 || $start->hour >= 20) {
             return response()->json(['error' => 'Нерабочее время'], 422);
         }
@@ -55,7 +55,7 @@ class BookingController extends Controller
             ->whereDate('starts_at', today())
             ->get()
             ->map(fn ($b) => [
-                'time' => $b->starts_at . ' – ' . $b->ends_at,
+                'time' => $b->starts_at.' – '.$b->ends_at,
                 'author' => $b->user->name,
             ]);
     }
