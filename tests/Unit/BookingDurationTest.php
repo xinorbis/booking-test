@@ -23,12 +23,21 @@ class BookingDurationTest extends TestCase
         );
     }
 
+    public function test_it_checks_the_grid_in_the_office_timezone(): void
+    {
+        $this->assertSame([], $this->validate(
+            '2026-11-20T14:20:00+05:20',
+            '2026-11-20T15:20:00+05:20',
+            'Europe/Moscow',
+        ));
+    }
+
     /**
      * @return list<string>
      */
-    private function validate(string $startsAt, string $endsAt): array
+    private function validate(string $startsAt, string $endsAt, ?string $timezone = null): array
     {
-        $rule = (new ValidBookingDuration)->setData([
+        $rule = (new ValidBookingDuration($timezone))->setData([
             'starts_at' => $startsAt,
             'ends_at' => $endsAt,
         ]);

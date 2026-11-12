@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Booking;
 use App\Models\Room;
 use App\Rules\ValidBookingDuration;
+use App\Rules\WithinOfficeWorkingHours;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -20,27 +21,42 @@ class BookingController extends Controller
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'starts_at' => ['required', 'date'],
-            'ends_at' => ['required', 'date', new ValidBookingDuration],
+        $request->validate([
+            'room_id' => ['required', 'integer', 'exists:rooms,id'],
         ]);
 
-        $start = Carbon::parse($validated['starts_at']);
-        $end = Carbon::parse($validated['ends_at']);
+        $room = Room::query()
+            ->with('office')
+            ->findOrFail($request->integer('room_id'));
+
+        $timezone = $room->office->timezone;
+
+        $validated = $request->validate([
+            'starts_at' => ['required', 'date'],
+            'ends_at' => [
+                'required',
+                'date',
+                new ValidBookingDuration($timezone),
+                new WithinOfficeWorkingHours($timezone),
+            ],
+        ]);
+
+        $startUtc = Carbon::parse($validated['starts_at'])->utc();
+        $endUtc = Carbon::parse($validated['ends_at'])->utc();
 
         $conflict = Booking::query()
-            ->overlapping($request->integer('room_id'), $start, $end)
+            ->overlapping($room->id, $startUtc, $endUtc)
             ->exists();
 
         if ($conflict) {
             return response()->json(['error' => 'Комната занята'], 409);
         }
 
-        if ($start->hour < 9 || $start->hour >= 20) {
-            return response()->json(['error' => 'Нерабочее время'], 422);
-        }
-
-        $booking = Booking::create($request->all());
+        $booking = Booking::create([
+            ...$request->except(['starts_at', 'ends_at']),
+            'starts_at' => $startUtc,
+            'ends_at' => $endUtc,
+        ]);
 
         Log::withContext(['booking_id' => $booking->id]);
         Log::channel('bookings')->info('Booking created');

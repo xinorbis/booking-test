@@ -22,6 +22,8 @@ class ValidBookingDuration implements DataAwareRule, ValidationRule
      */
     protected array $data = [];
 
+    public function __construct(private readonly ?string $timezone = null) {}
+
     /**
      * @param  array<string, mixed>  $data
      */
@@ -46,6 +48,11 @@ class ValidBookingDuration implements DataAwareRule, ValidationRule
         try {
             $start = Carbon::parse($startsAt);
             $end = Carbon::parse($value);
+
+            if ($this->timezone !== null) {
+                $start->setTimezone($this->timezone);
+                $end->setTimezone($this->timezone);
+            }
         } catch (\Throwable) {
             return;
         }
