@@ -8,6 +8,7 @@ use App\Rules\ValidBookingDuration;
 use App\Rules\WithinOfficeWorkingHours;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Log;
 
 class BookingController extends Controller
@@ -64,9 +65,12 @@ class BookingController extends Controller
         return $booking;
     }
 
-    public function destroy($id)
+    public function destroy(Request $request, int $id): Response
     {
-        Booking::findOrFail($id)->delete();
+        Booking::query()
+            ->ownedBy($request->user())
+            ->findOrFail($id)
+            ->delete();
 
         return response()->noContent();
     }
