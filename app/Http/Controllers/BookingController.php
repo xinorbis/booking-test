@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Booking;
 use App\Models\Room;
+use App\Rules\ValidBookingDuration;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -19,8 +20,13 @@ class BookingController extends Controller
 
     public function store(Request $request)
     {
-        $start = Carbon::parse($request->starts_at);
-        $end = Carbon::parse($request->ends_at);
+        $validated = $request->validate([
+            'starts_at' => ['required', 'date'],
+            'ends_at' => ['required', 'date', new ValidBookingDuration],
+        ]);
+
+        $start = Carbon::parse($validated['starts_at']);
+        $end = Carbon::parse($validated['ends_at']);
 
         $conflict = Booking::query()
             ->overlapping($request->integer('room_id'), $start, $end)
