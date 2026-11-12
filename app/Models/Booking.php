@@ -42,6 +42,17 @@ class Booking extends Model
             ->where('ends_at', '>', $startsAt);
     }
 
+    /**
+     * Limit the query to bookings owned by the given user.
+     *
+     * @param  Builder<Booking>  $query
+     * @return Builder<Booking>
+     */
+    public function scopeOwnedBy(Builder $query, User $user): Builder
+    {
+        return $query->where('user_id', $user->id);
+    }
+
     public function room(): BelongsTo
     {
         return $this->belongsTo(Room::class);
