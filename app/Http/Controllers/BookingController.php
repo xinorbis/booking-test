@@ -7,8 +7,10 @@ use App\Models\Room;
 use App\Rules\ValidBookingDuration;
 use App\Rules\WithinOfficeWorkingHours;
 use Carbon\Carbon;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class BookingController extends Controller
@@ -60,11 +62,19 @@ class BookingController extends Controller
             return response()->json(['error' => 'Комната занята'], 409);
         }
 
-        $booking = Booking::create([
-            ...$request->except(['starts_at', 'ends_at']),
-            'starts_at' => $startUtc,
-            'ends_at' => $endUtc,
-        ]);
+        try {
+            $booking = DB::transaction(fn () => Booking::create([
+                ...$request->except(['starts_at', 'ends_at']),
+                'starts_at' => $startUtc,
+                'ends_at' => $endUtc,
+            ]));
+        } catch (QueryException $exception) {
+            if (($exception->errorInfo[0] ?? null) === '23P01') {
+                return response()->json(['error' => 'Комната занята'], 409);
+            }
+
+            throw $exception;
+        }
 
         Log::withContext(['booking_id' => $booking->id]);
         Log::channel('bookings')->info('Booking created');
