@@ -1,5 +1,63 @@
 # Бронирование переговорных
 
+# Решение
+
+- [Ветка с решением](https://github.com/xinorbis/booking-test/tree/master)
+- [REVIEW.md](https://github.com/xinorbis/booking-test/blob/master/REVIEW.md)
+- [AI_NOTES.md](https://github.com/xinorbis/booking-test/blob/master/AI_NOTES.md)
+
+# Запуск
+
+Установить docker и docker-compose.
+
+Выполнить команды:
+
+```sh
+docker compose up -d --wait
+docker compose exec app php artisan migrate:fresh --seed
+```
+
+Первый запуск занимает несколько минут: контейнер устанавливает зависимости. API доступно по адресу http://localhost:8000/api.
+
+# Тесты
+
+Из корня проекта:
+
+1. Поднять контейнеры, если они не запущены
+
+```sh
+docker compose up -d --wait
+```
+
+2. Запустить все тесты
+
+```sh
+docker compose exec app php artisan test
+```
+
+Или в компактном виде
+
+```sh
+docker compose exec app php artisan test --compact
+```
+
+Отдельные тесты:
+
+Только тесты пересечений
+
+```sh
+docker compose exec app php artisan test tests/Feature/BookingOverlapTest.php tests/Unit/BookingOverlapScopeTest.php
+```
+
+По имени/фильтру
+
+```sh
+docker compose exec app php artisan test --filter=BookingOverlap
+```
+
+<details>
+<summary>Задание</summary>
+
 ## Задание
 
 ### Правила
@@ -48,25 +106,6 @@
 - Ссылку на репозиторий с кодом, историей коммитов, `REVIEW.md`, `AI_NOTES.md` и README. Если репозиторий приватный, добавьте в соавторы (Settings → Collaborators) аккаунт `rcsi-science`. Вместо ссылки можно прислать архив, но обязательно с папкой `.git`: по ней мы смотрим историю коммитов.
 - В README: как запустить проект и тесты одной-двумя командами.
 
-## Запуск
-
-Нужны Docker и Docker Compose.
-
-```sh
-docker compose up -d --wait
-docker compose exec app php artisan migrate:fresh --seed
-```
-
-Первый запуск занимает несколько минут: контейнер устанавливает зависимости. API доступно по адресу `http://localhost:8000/api`.
-
-## Тесты
-
-```sh
-docker compose exec app php artisan test
-```
-
-Тесты идут на PostgreSQL в отдельной базе `testing`.
-
 ## ИИ-агенты
 
 В проекте установлен [Laravel Boost](https://laravel.com/docs/boost): правила для агентов лежат в `AGENTS.md` и `CLAUDE.md`. Скиллы и MCP-сервер для своего агента можно подключить командой:
@@ -79,15 +118,15 @@ MCP-сервер Boost запускается на вашей машине, а �
 
 ## Данные сидера
 
-| Офис | Часовой пояс | Комнаты (id) |
-| --- | --- | --- |
-| Москва | Europe/Moscow | Арбат (1), Тверская (2), Остоженка (3) |
-| Новосибирск | Asia/Novosibirsk | Обь (4), Академгородок (5) |
+| Офис        | Часовой пояс     | Комнаты (id)                           |
+| ----------- | ---------------- | -------------------------------------- |
+| Москва      | Europe/Moscow    | Арбат (1), Тверская (2), Остоженка (3) |
+| Новосибирск | Asia/Novosibirsk | Обь (4), Академгородок (5)             |
 
-| Пользователь | id | Токен |
-| --- | --- | --- |
-| Анна | 1 | `anna-token` |
-| Борис | 2 | `boris-token` |
+| Пользователь | id  | Токен         |
+| ------------ | --- | ------------- |
+| Анна         | 1   | `anna-token`  |
+| Борис        | 2   | `boris-token` |
 
 Токены постоянные только для демонстрации.
 
@@ -95,12 +134,12 @@ MCP-сервер Boost запускается на вашей машине, а �
 
 Все методы требуют заголовки `Authorization: Bearer <токен>` и `Accept: application/json`. Без `Accept` запрос без токена вернёт 500 вместо 401.
 
-| Метод | Адрес | Что делает |
-| --- | --- | --- |
-| GET | `/api/bookings` | Мои брони |
-| POST | `/api/bookings` | Создать бронь |
-| DELETE | `/api/bookings/{id}` | Отменить бронь |
-| GET | `/api/rooms/{room}/bookings/today` | Брони комнаты на сегодня |
+| Метод  | Адрес                              | Что делает               |
+| ------ | ---------------------------------- | ------------------------ |
+| GET    | `/api/bookings`                    | Мои брони                |
+| POST   | `/api/bookings`                    | Создать бронь            |
+| DELETE | `/api/bookings/{id}`               | Отменить бронь           |
+| GET    | `/api/rooms/{room}/bookings/today` | Брони комнаты на сегодня |
 
 Пример:
 
@@ -113,3 +152,5 @@ curl -X POST http://localhost:8000/api/bookings \
 ```
 
 Лог созданных броней пишется в `storage/logs/bookings.log`.
+
+</details>
