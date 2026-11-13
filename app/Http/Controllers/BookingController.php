@@ -22,25 +22,32 @@ class BookingController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
-            'room_id' => ['required', 'integer', 'exists:rooms,id'],
-        ]);
+        $previousLocale = app()->getLocale();
+        app()->setLocale('ru');
 
-        $room = Room::query()
-            ->with('office')
-            ->findOrFail($request->integer('room_id'));
+        try {
+            $request->validate([
+                'room_id' => ['required', 'integer', 'exists:rooms,id'],
+            ]);
 
-        $timezone = $room->office->timezone;
+            $room = Room::query()
+                ->with('office')
+                ->findOrFail($request->integer('room_id'));
 
-        $validated = $request->validate([
-            'starts_at' => ['required', 'date'],
-            'ends_at' => [
-                'required',
-                'date',
-                new ValidBookingDuration($timezone),
-                new WithinOfficeWorkingHours($timezone),
-            ],
-        ]);
+            $timezone = $room->office->timezone;
+
+            $validated = $request->validate([
+                'starts_at' => ['required', 'date'],
+                'ends_at' => [
+                    'required',
+                    'date',
+                    new ValidBookingDuration($timezone),
+                    new WithinOfficeWorkingHours($timezone),
+                ],
+            ]);
+        } finally {
+            app()->setLocale($previousLocale);
+        }
 
         $startUtc = Carbon::parse($validated['starts_at'])->utc();
         $endUtc = Carbon::parse($validated['ends_at'])->utc();
